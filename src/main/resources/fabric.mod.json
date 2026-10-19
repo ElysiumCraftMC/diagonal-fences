@@ -29,8 +29,7 @@
   },
   "mixins": [
     "diagonalfences.common.mixins.json",
-    "diagonalfences.fabric.mixins.json",
-    "diagonalfences.migration.mixins.json"
+    "diagonalfences.fabric.mixins.json"
   ],
   "accessWidener": "diagonalfences.accesswidener",
   "depends": {
