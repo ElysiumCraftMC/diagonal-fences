@@ -2,7 +2,6 @@ package fuzs.diagonalfences.common.migration;
 
 import fuzs.diagonalblocks.common.api.v2.block.type.DiagonalBlockType;
 import fuzs.diagonalblocks.common.api.v2.block.type.DiagonalBlockTypes;
-import fuzs.diagonalblocks.common.impl.config.DiagonalBlocksConfig;
 import fuzs.diagonalfences.common.DiagonalFences;
 import net.minecraft.core.Registry;
 import net.minecraft.nbt.CompoundTag;
@@ -33,100 +32,70 @@ import java.util.concurrent.atomic.AtomicLong;
  * diagonal block has exactly the same property names). Entries without the legacy diagonal properties, entries that
  * already name a diagonal block, and entries for unknown blocks or blocks without a diagonal variant are left alone, so
  * the migration is idempotent and a no-op on vanilla / already converted data.
- * <p>
- * With {@code revertToVanillaOnLoad=true} in {@code config/diagonalblocks.properties} the opposite is done (uninstall
- * mode): diagonal fence entries ({@code diagonalfences:<ns>/<path>}) are renamed back to their base fence and the four
- * diagonal properties are removed, keeping the straight connections and {@code waterlogged}; legacy 4.x entries just
- * get their diagonal properties removed. The resulting data only uses the base fences' own states, so the mod can be
- * removed afterwards without fences turning into air. Also idempotent.
  */
 public final class LegacyFenceMigration {
-    private static final String[] DIAGONAL_PROPERTIES = {"north_east", "south_east", "south_west", "north_west"};
+    private static final String[] LEGACY_DIAGONAL_PROPERTIES = {"north_east", "south_east", "south_west", "north_west"};
 
-    private enum Kind {MIGRATED, REVERTED}
-
-    private static final class Stats {
-        final AtomicLong chunks = new AtomicLong();
-        final AtomicLong blocks = new AtomicLong();
-        final AtomicLong entries = new AtomicLong();
-        final AtomicLong other = new AtomicLong();
-        final AtomicBoolean announced = new AtomicBoolean();
-        long reportedChunks;
-        long reportedOther;
-    }
-
-    private static final Stats MIGRATED = new Stats();
-    private static final Stats REVERTED = new Stats();
+    private static final AtomicLong CHUNKS = new AtomicLong();
+    private static final AtomicLong BLOCKS = new AtomicLong();
+    private static final AtomicLong PALETTE_ENTRIES = new AtomicLong();
+    private static final AtomicLong OTHER_STATES = new AtomicLong();
+    private static final AtomicBoolean ANNOUNCED = new AtomicBoolean();
+    private static final AtomicLong REPORTED_CHUNKS = new AtomicLong();
+    private static final AtomicLong REPORTED_OTHER = new AtomicLong();
 
     private LegacyFenceMigration() {
     }
 
-    private static boolean hasDiagonalProperties(CompoundTag properties) {
-        for (String key : DIAGONAL_PROPERTIES) {
-            if (properties.contains(key, Tag.TAG_STRING)) return true;
-        }
-        return false;
-    }
-
     /**
-     * Rewrites a single palette / block state compound in place.
-     *
-     * @return what was done, {@code null} if the entry was left alone
+     * Returns the id of the diagonal block that should replace a legacy palette / block state entry, or {@code null}
+     * if the entry is not a legacy Diagonal Fences 4.x state.
      */
     @Nullable
-    private static Kind rewrite(CompoundTag stateTag) {
-        if (!stateTag.contains("Name", Tag.TAG_STRING)) return null;
+    private static String getReplacementName(CompoundTag stateTag) {
+        if (!stateTag.contains("Name", Tag.TAG_STRING) || !stateTag.contains("Properties", Tag.TAG_COMPOUND)) {
+            return null;
+        }
+        CompoundTag properties = stateTag.getCompound("Properties");
+        boolean legacy = false;
+        for (String key : LEGACY_DIAGONAL_PROPERTIES) {
+            if (properties.contains(key, Tag.TAG_STRING)) {
+                legacy = true;
+                break;
+            }
+        }
+        if (!legacy) return null;
         ResourceLocation id = ResourceLocation.tryParse(stateTag.getString("Name"));
         if (id == null) return null;
         Block block = Registry.BLOCK.getOptional(id).orElse(null);
         if (block == null) return null;
         DiagonalBlockType type = DiagonalBlockTypes.FENCE;
-        boolean hasProperties = stateTag.contains("Properties", Tag.TAG_COMPOUND);
-        CompoundTag properties = stateTag.getCompound("Properties");
-        if (DiagonalBlocksConfig.revertToVanillaOnLoad) {
-            Block baseBlock = type.getBlockConversions().inverse().get(block);
-            if (baseBlock != null) {
-                // diagonal fence -> base fence, without the diagonal properties
-                stateTag.putString("Name", Registry.BLOCK.getKey(baseBlock).toString());
-                for (String key : DIAGONAL_PROPERTIES) properties.remove(key);
-                return Kind.REVERTED;
-            } else if (hasProperties && type.getBlockConversions().containsKey(block) && hasDiagonalProperties(properties)) {
-                // legacy 4.x entry: only strip the properties the base fence does not have
-                for (String key : DIAGONAL_PROPERTIES) properties.remove(key);
-                return Kind.REVERTED;
-            }
-            return null;
-        }
-        if (!hasProperties || !hasDiagonalProperties(properties)) return null;
         Block diagonalBlock = type.getBlockConversions().get(block);
         if (diagonalBlock == null) return null;
         // like upstream, blacklisted fences stay non-diagonal (vanilla then drops the unused legacy properties)
-        if (block.builtInRegistryHolder().is(type.getBlacklistTagKey())) return null;
-        stateTag.putString("Name", Registry.BLOCK.getKey(diagonalBlock).toString());
-        return Kind.MIGRATED;
-    }
-
-    private static Stats stats(Kind kind) {
-        return kind == Kind.MIGRATED ? MIGRATED : REVERTED;
+        if (block.builtInRegistryHolder().is(type.getBlacklistTagKey())) {
+            return null;
+        }
+        return Registry.BLOCK.getKey(diagonalBlock).toString();
     }
 
     /**
      * Migrates a single block state compound as read by {@link net.minecraft.nbt.NbtUtils#readBlockState(CompoundTag)}
      * (moving pistons, structure templates, falling blocks, ...).
      *
-     * @return a rewritten copy, or the original tag if nothing needed to change
+     * @return a migrated copy, or the original tag if nothing needed to change
      */
     public static CompoundTag migrateBlockStateTag(CompoundTag stateTag) {
-        if (!stateTag.contains("Name", Tag.TAG_STRING)) return stateTag;
+        String replacement = getReplacementName(stateTag);
+        if (replacement == null) return stateTag;
         CompoundTag copy = stateTag.copy();
-        Kind kind = rewrite(copy);
-        if (kind == null) return stateTag;
-        stats(kind).other.incrementAndGet();
+        copy.putString("Name", replacement);
+        OTHER_STATES.incrementAndGet();
         return copy;
     }
 
     /**
-     * Rewrites all block state palettes of a serialized chunk in place.
+     * Migrates all block state palettes of a serialized chunk in place.
      *
      * @return {@code true} if anything was changed, the chunk must then be marked as unsaved
      */
@@ -135,7 +104,6 @@ public final class LegacyFenceMigration {
         ListTag sections = chunkTag.getList("sections", Tag.TAG_COMPOUND);
         long blocks = 0;
         int entries = 0;
-        Kind done = null;
         for (int i = 0; i < sections.size(); i++) {
             CompoundTag section = sections.getCompound(i);
             if (!section.contains("block_states", Tag.TAG_COMPOUND)) continue;
@@ -143,9 +111,10 @@ public final class LegacyFenceMigration {
             ListTag palette = blockStates.getList("palette", Tag.TAG_COMPOUND);
             boolean[] converted = null;
             for (int j = 0; j < palette.size(); j++) {
-                Kind kind = rewrite(palette.getCompound(j));
-                if (kind != null) {
-                    done = kind;
+                CompoundTag entry = palette.getCompound(j);
+                String replacement = getReplacementName(entry);
+                if (replacement != null) {
+                    entry.putString("Name", replacement);
                     if (converted == null) converted = new boolean[palette.size()];
                     converted[j] = true;
                     entries++;
@@ -155,19 +124,14 @@ public final class LegacyFenceMigration {
                 blocks += countBlocks(converted, blockStates.contains("data", Tag.TAG_LONG_ARRAY) ? blockStates.getLongArray("data") : null);
             }
         }
-        if (done == null) return false;
-        Stats stats = stats(done);
-        stats.chunks.incrementAndGet();
-        stats.blocks.addAndGet(blocks);
-        stats.entries.addAndGet(entries);
-        if (stats.announced.compareAndSet(false, true)) {
-            if (done == Kind.MIGRATED) {
-                DiagonalFences.LOGGER.info("Found fences saved by Diagonal Fences 4.x (legacy vanilla-fence block states with diagonal properties), converting them to the new diagonal fence blocks (first chunk: {})", chunkPos);
-            } else {
-                DiagonalFences.LOGGER.info("revertToVanillaOnLoad is enabled: converting diagonal fences back to their non-diagonal base fences in every loaded chunk (first chunk: {})", chunkPos);
-            }
+        if (entries == 0) return false;
+        long chunks = CHUNKS.incrementAndGet();
+        BLOCKS.addAndGet(blocks);
+        PALETTE_ENTRIES.addAndGet(entries);
+        if (ANNOUNCED.compareAndSet(false, true)) {
+            DiagonalFences.LOGGER.info("Found fences saved by Diagonal Fences 4.x (legacy vanilla-fence block states with diagonal properties), converting them to the new diagonal fence blocks (first chunk: {})", chunkPos);
         }
-        DiagonalFences.LOGGER.debug("{} {} fence block(s) ({} palette entries) in chunk {}", done == Kind.MIGRATED ? "Migrated" : "Reverted", blocks, entries, chunkPos);
+        DiagonalFences.LOGGER.debug("Converted {} legacy diagonal fence block(s) ({} palette entries) in chunk {}", blocks, entries, chunkPos);
         return true;
     }
 
@@ -197,17 +161,13 @@ public final class LegacyFenceMigration {
      * Logs a summary of everything converted since the last summary, called once the server has started (covers the
      * spawn area) and when it stops (covers the whole session).
      */
-    public static synchronized void logSummary(String when) {
-        logSummary(when, MIGRATED, "Diagonal Fences 4.x migration summary ({}): converted {} block(s) ({} palette entries) in {} chunk(s), plus {} other stored block state(s) (pistons, structures, ...); converted chunks are marked for saving and will be written in the new format");
-        logSummary(when, REVERTED, "revertToVanillaOnLoad summary ({}): reverted {} diagonal fence block(s) ({} palette entries) in {} chunk(s), plus {} other stored block state(s) (pistons, structures, ...) to their non-diagonal base fences; reverted chunks are marked for saving");
-    }
-
-    private static void logSummary(String when, Stats stats, String message) {
-        long chunks = stats.chunks.get();
-        long other = stats.other.get();
-        if (chunks == stats.reportedChunks && other == stats.reportedOther) return;
-        stats.reportedChunks = chunks;
-        stats.reportedOther = other;
-        DiagonalFences.LOGGER.info(message, when, stats.blocks.get(), stats.entries.get(), chunks, other);
+    public static void logSummary(String when) {
+        long chunks = CHUNKS.get();
+        long other = OTHER_STATES.get();
+        if (chunks == REPORTED_CHUNKS.get() && other == REPORTED_OTHER.get()) return;
+        REPORTED_CHUNKS.set(chunks);
+        REPORTED_OTHER.set(other);
+        DiagonalFences.LOGGER.info("Diagonal Fences 4.x migration summary ({}): converted {} block(s) ({} palette entries) in {} chunk(s), plus {} other stored block state(s) (pistons, structures, ...); converted chunks are marked for saving and will be written in the new format",
+                when, BLOCKS.get(), PALETTE_ENTRIES.get(), chunks, other);
     }
 }
