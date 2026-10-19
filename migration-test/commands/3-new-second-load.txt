@@ -1,0 +1,17 @@
+execute if block 0 -50 0 diagonalfences:minecraft/oak_fence[south_east=true,north=false,east=false,waterlogged=false]
+execute if block 1 -50 1 diagonalfences:minecraft/oak_fence[north_west=true,south_east=true]
+execute if block 3 -50 3 diagonalfences:minecraft/oak_fence[north_west=true,south_east=false]
+execute if block 7 -50 0 diagonalfences:minecraft/spruce_fence[west=true,south_east=true]
+execute if block 8 -50 1 diagonalfences:minecraft/spruce_fence[north_west=true,south=true]
+execute if block 20 -50 20 diagonalfences:minecraft/birch_fence[waterlogged=true,south_east=true]
+execute if block 21 -50 21 diagonalfences:minecraft/birch_fence[waterlogged=true,north_west=true,east=true]
+execute if block 22 -50 21 diagonalfences:minecraft/birch_fence[west=true,waterlogged=false]
+execute if block 40 -50 0 diagonalfences:minecraft/nether_brick_fence[south_east=true]
+execute if block 41 -50 1 diagonalfences:minecraft/nether_brick_fence[north_west=true,east=false]
+execute if block 101 -50 101 diagonalfences:minecraft/dark_oak_fence[north_west=true,north_east=true]
+execute if block 306 -50 -294 diagonalfences:minecraft/crimson_fence[north_west=true]
+execute if block 305 -50 -295 diagonalfences:minecraft/crimson_fence[south_east=true]
+place template dftest:legacy 60 -50 60
+execute if block 60 -50 60 diagonalfences:minecraft/acacia_fence[south_east=true,waterlogged=false]
+execute if block 61 -50 61 diagonalfences:minecraft/acacia_fence[north_west=true,waterlogged=true]
+forceload add 352 -256

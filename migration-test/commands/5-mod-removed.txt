@@ -1,0 +1,8 @@
+forceload add 300 -300 310 -290
+execute if block 1 -50 1 minecraft:oak_fence
+execute if block 1 -50 1 minecraft:air
+execute if block 21 -50 21 minecraft:birch_fence[waterlogged=true]
+execute if block 21 -50 21 minecraft:water
+execute if block 21 -50 21 minecraft:air
+execute if block 7 -50 0 minecraft:spruce_fence[west=true]
+execute if block 7 -50 0 minecraft:air

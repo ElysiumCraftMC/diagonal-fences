@@ -1,0 +1,132 @@
+### oldsrv.log
+[21:17:21] [main/INFO]: Loading 52 mods:
+	- diagonalfences 4.2.6
+	- fabric-api 0.77.0+1.19.2
+	- forgeconfigapiport 4.2.11
+	- puzzleslib 4.4.3
+[21:17:31] [Server thread/INFO]: Done (4.407s)! For help, type "help"
+[21:17:55] [Server thread/INFO]: Changed the block at 0, -50, 0
+[21:17:55] [Server thread/INFO]: Changed the block at 1, -50, 1
+[21:17:55] [Server thread/INFO]: Changed the block at 2, -50, 2
+[21:17:55] [Server thread/INFO]: Changed the block at 3, -50, 3
+[21:17:56] [Server thread/INFO]: Changed the block at 6, -50, 0
+[21:17:56] [Server thread/INFO]: Changed the block at 7, -50, 0
+[21:17:56] [Server thread/INFO]: Changed the block at 8, -50, 1
+[21:17:56] [Server thread/INFO]: Changed the block at 8, -50, 2
+[21:17:57] [Server thread/INFO]: Changed the block at 20, -50, 20
+[21:17:57] [Server thread/INFO]: Changed the block at 21, -50, 21
+[21:17:57] [Server thread/INFO]: Changed the block at 22, -50, 21
+[21:17:58] [Server thread/INFO]: Changed the block at 40, -50, 0
+[21:17:58] [Server thread/INFO]: Changed the block at 41, -50, 1
+[21:17:58] [Server thread/INFO]: Changed the block at 42, -50, 1
+[21:17:59] [Server thread/INFO]: Changed the block at 100, -50, 100
+[21:17:59] [Server thread/INFO]: Changed the block at 101, -50, 101
+[21:17:59] [Server thread/INFO]: Changed the block at 102, -50, 100
+[21:17:59] [Server thread/INFO]: Changed the block at 305, -50, -295
+[21:18:00] [Server thread/INFO]: Changed the block at 306, -50, -294
+[21:18:00] [Server thread/INFO]: Changed the block at 10, -50, 10
+[21:18:09] [Server thread/INFO]: Test passed
+[21:18:09] [Server thread/INFO]: Test passed
+[21:18:09] [Server thread/INFO]: Test passed
+[21:18:10] [Server thread/INFO]: Test passed
+[21:18:10] [Server thread/INFO]: Test passed
+[21:18:10] [Server thread/INFO]: Test passed
+[21:18:11] [Server thread/INFO]: Test passed
+[21:18:11] [Server thread/INFO]: Test passed
+[21:18:11] [Server thread/INFO]: Test passed
+[21:18:12] [Server thread/INFO]: Test passed
+[21:18:12] [Server thread/INFO]: Test passed
+[21:18:12] [Server thread/INFO]: 10, -50, 10 has the following block data: [{Slot: 0b, id: "minecraft:oak_fence", Count: 5b}, {Slot: 1b, id: "minecraft:birch_fence", Count: 3b}]
+### migsrv1.log
+[21:21:07] [main/INFO]: Loading 43 mods:
+	- diagonalfences 26.3.0+1.19.2-backport
+	- fabric-api 0.77.0+1.19.2
+[21:21:15] [Server thread/INFO]: Found fences saved by Diagonal Fences 4.x (legacy vanilla-fence block states with diagonal properties), converting them to the new diagonal fence blocks (first chunk: [0, 0])
+[21:21:16] [Server thread/INFO]: Done (2.982s)! For help, type "help"
+[21:21:16] [Server thread/INFO]: Diagonal Fences 4.x migration summary (server started): converted 63 block(s) (26 palette entries) in 6 chunk(s), plus 0 other stored block state(s) (pistons, structures, ...); converted chunks are marked for saving and will be written in the new format
+[21:21:18] [Server thread/INFO]: Test passed
+[21:21:19] [Server thread/INFO]: Test passed
+[21:21:19] [Server thread/INFO]: Test passed
+[21:21:19] [Server thread/INFO]: Test passed
+[21:21:20] [Server thread/INFO]: Test passed
+[21:21:20] [Server thread/INFO]: Test passed
+[21:21:20] [Server thread/INFO]: Test passed
+[21:21:21] [Server thread/INFO]: Test passed
+[21:21:21] [Server thread/INFO]: Test passed
+[21:21:21] [Server thread/INFO]: Test passed
+[21:21:22] [Server thread/INFO]: Test passed
+[21:21:22] [Server thread/INFO]: Test passed
+[21:21:22] [Server thread/INFO]: Test passed
+[21:21:23] [Server thread/INFO]: Test passed
+[21:21:23] [Server thread/INFO]: 10, -50, 10 has the following block data: [{Slot: 0b, id: "minecraft:oak_fence", Count: 5b}, {Slot: 1b, id: "minecraft:birch_fence", Count: 3b}]
+[21:21:24] [Server thread/INFO]: Changed the block at 2, -49, 2
+[21:21:24] [Server thread/INFO]: Test failed
+[21:21:24] [Server thread/INFO]: Changed the block at 2, -49, 2
+[21:21:25] [Server thread/INFO]: Changed the block at 12, -50, 12
+[21:21:25] [Server thread/INFO]: Changed the block at 13, -50, 13
+[21:21:25] [Server thread/INFO]: Test failed
+### migsrv2.log
+[21:27:43] [main/INFO]: Loading 43 mods:
+	- diagonalfences 26.3.0+1.19.2-backport
+	- fabric-api 0.77.0+1.19.2
+[21:27:51] [Server thread/INFO]: Done (2.574s)! For help, type "help"
+[21:27:52] [Server thread/INFO]: Test passed
+[21:27:52] [Server thread/INFO]: Test passed
+[21:27:53] [Server thread/INFO]: Test passed
+[21:27:53] [Server thread/INFO]: Test passed
+[21:27:53] [Server thread/INFO]: Test passed
+[21:27:54] [Server thread/INFO]: Test passed
+[21:27:54] [Server thread/INFO]: Test passed
+[21:27:54] [Server thread/INFO]: Test passed
+[21:27:55] [Server thread/INFO]: Test passed
+[21:27:55] [Server thread/INFO]: Test passed
+[21:27:55] [Server thread/INFO]: Test passed
+[21:27:56] [Server thread/INFO]: Test passed
+[21:27:56] [Server thread/INFO]: Test passed
+[21:27:56] [Server thread/INFO]: Loaded template "dftest:legacy" at 60, -50, 60
+[21:27:57] [Server thread/INFO]: Test passed
+[21:27:57] [Server thread/INFO]: Test passed
+[21:28:02] [Server thread/INFO]: Diagonal Fences 4.x migration summary (server stopping): converted 0 block(s) (0 palette entries) in 0 chunk(s), plus 2 other stored block state(s) (pistons, structures, ...); converted chunks are marked for saving and will be written in the new format
+### migsrv3.log
+[21:28:14] [main/INFO]: Loading 43 mods:
+	- diagonalfences 26.3.0+1.19.2-backport
+	- fabric-api 0.77.0+1.19.2
+[21:28:23] [Server thread/INFO]: Done (2.499s)! For help, type "help"
+[21:28:24] [Server thread/INFO]: Test passed
+[21:28:24] [Server thread/INFO]: Test passed
+[21:28:24] [Server thread/INFO]: Test passed
+[21:28:25] [Server thread/INFO]: Test passed
+[21:28:25] [Server thread/INFO]: Test passed
+[21:28:25] [Server thread/INFO]: Test passed
+[21:28:26] [Server thread/INFO]: Test passed
+[21:28:26] [Server thread/INFO]: Test passed
+[21:28:27] [Server thread/INFO]: Test passed
+[21:28:27] [Server thread/INFO]: Test passed
+[21:28:27] [Server thread/INFO]: Test passed
+[21:28:28] [Server thread/INFO]: Test passed
+[21:28:28] [Server thread/INFO]: Test passed
+[21:28:28] [Server thread/INFO]: Test passed
+[21:28:29] [Server thread/INFO]: Test passed
+[21:28:29] [Server thread/INFO]: Test passed
+### rmA.log
+[21:40:46] [main/INFO]: Loading 42 mods:
+	- fabric-api 0.77.0+1.19.2
+[21:40:54] [Server thread/INFO]: Done (2.504s)! For help, type "help"
+[21:40:56] [Server thread/INFO]: Test passed
+[21:40:56] [Server thread/INFO]: Test failed
+[21:40:56] [Server thread/INFO]: Test passed
+[21:40:57] [Server thread/INFO]: Test failed
+[21:40:57] [Server thread/INFO]: Test failed
+[21:40:57] [Server thread/INFO]: Test passed
+[21:40:58] [Server thread/INFO]: Test failed
+### rmB.log
+[21:28:52] [main/INFO]: Loading 42 mods:
+	- fabric-api 0.77.0+1.19.2
+[21:29:01] [Server thread/INFO]: Done (2.585s)! For help, type "help"
+[21:29:03] [Server thread/INFO]: Test failed
+[21:29:03] [Server thread/INFO]: Test passed
+[21:29:04] [Server thread/INFO]: Test failed
+[21:29:04] [Server thread/INFO]: Test failed
+[21:29:04] [Server thread/INFO]: Test passed
+[21:29:05] [Server thread/INFO]: Test failed
+[21:29:05] [Server thread/INFO]: Test passed
