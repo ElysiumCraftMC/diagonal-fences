@@ -89,60 +89,6 @@ and a structure template with legacy states was placed as diagonal fences.
 * Fences in the legacy format whose base fence is not present (mod removed) are not touched.
 * Removing the mod afterwards: like upstream 26.x, the diagonal fences are separate registered blocks, so a world loaded
   without this mod replaces every `diagonalfences:*` block with **air** (waterlogged ones too, no water is left); vanilla
-  fences and fence items stay. Use the uninstall mode below first. For comparison, removing 4.2.6 keeps the fences as
-  vanilla fences and only loses the diagonal connections. Tested, see `migration-test/results/`.
-
-## "Slabs turned into water" and other wrong blocks with 4.x: cause
-
-Reports: [diagonal-blocks#32](https://github.com/Fuzss/diagonal-blocks/issues/32) (1.19.2, 4.2.3, "when on a server,
-certain blocks change into other random blocks. doesnt happen in singleplayer"; the author: "This is only visual, no data
-is corrupted server-side ... block states are synced via an index ... there is a mismatch between the block state maps on
-server and client", and "Fabric even lets you join a server when there is such a mismatch"),
-[#44](https://github.com/Fuzss/diagonal-blocks/issues/44) (carpets, stairs, glass shown as fences on a server without
-the mod), [#48](https://github.com/Fuzss/diagonal-blocks/issues/48) (kelp, glowstone, command blocks shown as fences on
-servers, back to normal when the mod is removed from the client). The repository was named diagonalfences back then.
-
-Mechanism (reproduced, see `migration-test/README.md`): 4.x adds 4 boolean properties to every fence, so each fence has
-512 instead of 32 states. The global numeric block state id table (`Block.BLOCK_STATE_REGISTRY`) grows from 21448 to
-26248 entries and every state registered after `minecraft:oak_fence` (16853 non-fence vanilla states, e.g. stone slab
-9086 -> 10046) gets another number. The game sends chunks and block updates to clients as these numbers. If the server
-and the client do not both run 4.x (the mod was removed from only one side, or a 4.x client joins a server without it),
-the client looks the numbers up in a different table and shows other blocks: with a vanilla server and a 4.x client a
-stone slab id lands on a waterlogged dark oak stair, glowstone and command blocks become fences (exactly #48); with a
-4.x server and a vanilla client 356 of 512 tested states were shown wrong. Fabric's registry sync does not catch it:
-4.x adds no registry entries, so the block registries match and only the state counts differ.
-
-What is **not** affected (tested on a normal world with a village, 3116 chunks, a section with a 331-entry palette,
-block entities, falling blocks, POI, heightmaps): the save. 1.19.2 writes block states to disk by name and properties
-only (chunk palettes of any size, structure templates, falling block / piston NBT), never as numeric ids, and Fabric API
-0.77 does not persist registry ids in the world. Loading a 4.2.6 world without the mod changes no block other than the
-fences' diagonal connections. Inferred, not tested: client-side mods that cache numeric state ids (some minimap / world
-map / LOD caches) or were filled while the client was desynced would keep showing wrong blocks until their cache is
-rebuilt; clearing those caches fixes it. Nothing on the server has to be repaired.
-
-### Does the backport have the same risk?
-* Vanilla state ids are unchanged with the backport (measured: all 21448 vanilla states keep their number); the 5120
-  diagonal fence states for the vanilla fences are appended after them. Diagonal blocks for modded fences are
-  registered right after their base fence (as upstream), so states of modded blocks registered later move, like with any
-  mod that adds blocks; Fabric registry sync re-orders raw ids for clients that have the same mods.
-* A vanilla client on a backport server sees all vanilla blocks correctly, only the diagonal fences themselves cannot be
-  decoded (measured with a vanilla protocol client: 503/512 correct, the 9 others are the diagonal fences). A Fabric
-  client without the mod is refused by Fabric registry sync, because the server's block registry has entries the
-  client lacks (from Fabric API's code, "contains IDs unknown to the receiver"; not run).
-* Moving from 4.2.6 to the backport: the save is safe (tested, only the fence rename differs). Server and all clients
-  must be switched at the same time. A client that still runs 4.2.6 on a backport server is rejected by registry sync
-  (missing `diagonalfences:*` blocks); a client running the backport on a 4.2.6 server would have the 4.x-style
-  mismatch the other way round (inferred). Clear client map/LOD caches that were built during a desync.
-
-## Uninstall mode (`revertToVanillaOnLoad`)
-`config/diagonalblocks.properties`, default `false`. When `true`:
-* every loaded chunk has its diagonal fence palette entries rewritten to the base fence (`diagonalfences:minecraft/oak_fence`
-  -> `minecraft:oak_fence`) with the diagonal properties removed; straight connections and `waterlogged` are kept, the
-  chunk is marked for saving. Single stored states (falling blocks, pistons, structure templates) are reverted too.
-  Legacy 4.x entries just lose their diagonal properties.
-* fence items place normal fences (`diagonalBlocksByDefault` is ignored).
-* a notice and a summary (`revertToVanillaOnLoad summary (...): reverted N diagonal fence block(s) ...`) are logged.
-* running it again changes nothing.
-Load every area that contains diagonal fences once (chunks that are never loaded are not converted), stop the server,
-then remove the mod. Tested: 1618 diagonal fences in 85 chunks reverted, a second load changed nothing, and the world
-loaded without the mod kept every fence (including waterlogged ones) and every other block unchanged.
+  fences and fence items stay. For comparison, removing 4.2.6 keeps the fences as vanilla fences and only loses the
+  diagonal connections. To remove the mod, first turn diagonal fences back into vanilla ones (sneak + right-click with an
+  empty hand, per block). Both cases were tested, see `migration-test/results/block-counts.txt`.
