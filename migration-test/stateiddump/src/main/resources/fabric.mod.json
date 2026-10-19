@@ -1,0 +1,2 @@
+{"schemaVersion":1,"id":"stateiddump","version":"1.0.0","name":"State ID dump (test helper)","environment":"*",
+ "entrypoints":{"main":["dfence.idtool.StateIdDump"]},"depends":{"fabricloader":"*","fabric-api":"*"}}

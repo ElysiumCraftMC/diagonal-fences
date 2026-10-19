@@ -1,0 +1,46 @@
+## vanilla (fabric-api-0.77.0+1.19.2.jar stateiddump-1.0.0.jar )
+21448 block states, 933 blocks
+Block.getId(minecraft:oak_fence default) = 4306
+Block.getId(minecraft:water[level=0]) = 75
+Block.getId(minecraft:stone_slab[type=bottom,waterlogged=false]) = 9086
+Block.getId(minecraft:oak_slab default) = 9044
+Block.getId(minecraft:oak_stairs default) = 2219
+Block.getId(minecraft:stone) = 1
+
+## old (DiagonalFences-v4.2.6-1.19.2-Fabric.jar ForgeConfigAPIPort-v4.2.11-1.19.2-Fabric.jar PuzzlesLib-v4.4.3-1.19.2-Fabric.jar fabric-api-0.77.0+1.19.2.jar stateiddump-1.0.0.jar )
+26248 block states, 933 blocks
+Block.getId(minecraft:oak_fence default) = 4786
+Block.getId(minecraft:water[level=0]) = 75
+Block.getId(minecraft:stone_slab[type=bottom,waterlogged=false]) = 10046
+Block.getId(minecraft:oak_slab default) = 10004
+Block.getId(minecraft:oak_stairs default) = 2219
+Block.getId(minecraft:stone) = 1
+
+## backport (diagonalfences-fabric-26.3.0+1.19.2-backport.jar fabric-api-0.77.0+1.19.2.jar stateiddump-1.0.0.jar )
+26568 block states, 943 blocks
+Block.getId(minecraft:oak_fence default) = 4306
+Block.getId(minecraft:water[level=0]) = 75
+Block.getId(minecraft:stone_slab[type=bottom,waterlogged=false]) = 9086
+Block.getId(minecraft:oak_slab default) = 9044
+Block.getId(minecraft:oak_stairs default) = 2219
+Block.getId(minecraft:stone) = 1
+
+## comparison
+non-fence vanilla states whose numeric id differs with 4.2.6 installed: 16853 of 21448 (everything registered after minecraft:oak_fence, first: id 4307 minecraft:pumpkin)
+vanilla states whose numeric id differs with the backport installed: 0; diagonal fence states occupy ids 21448..26567 (appended after the last vanilla state 21447)
+
+## vanilla server, 4.2.6 client (client decodes the vanilla id with its 4.2.6 table)
+Block{minecraft:stone_slab}[type=bottom,waterlogged=false] id 9086 -> Block{minecraft:dark_oak_stairs}[facing=west,half=top,shape=inner_left,waterlogged=true]
+Block{minecraft:oak_slab}[type=bottom,waterlogged=false] id 9044 -> Block{minecraft:dark_oak_stairs}[facing=north,half=top,shape=straight,waterlogged=true]
+Block{minecraft:glowstone} id 4322 -> Block{minecraft:oak_fence}[east=true,north=true,north_east=true,north_west=false,south=true,south_east=false,south_west=false,waterlogged=false,west=false]
+Block{minecraft:kelp}[age=0] id 10351 -> Block{minecraft:spruce_fence}[east=true,north=true,north_east=true,north_west=true,south=false,south_east=false,south_west=false,waterlogged=true,west=true]
+Block{minecraft:white_carpet} id 8607 -> Block{minecraft:yellow_stained_glass_pane}[east=false,north=false,south=true,waterlogged=false,west=false]
+Block{minecraft:command_block}[conditional=false,facing=north] id 6242 -> Block{minecraft:nether_brick_fence}[east=true,north=false,north_east=true,north_west=true,south=false,south_east=false,south_west=false,waterlogged=false,west=false]
+
+## 4.2.6 server, vanilla client
+Block{minecraft:stone_slab}[type=bottom,waterlogged=false] id 10046 -> Block{minecraft:purpur_stairs}[facing=south,half=top,shape=outer_left,waterlogged=false]
+Block{minecraft:oak_slab}[type=bottom,waterlogged=false] id 10004 -> Block{minecraft:chorus_plant}[down=false,east=false,north=false,south=true,up=false,west=false]
+Block{minecraft:glowstone} id 4802 -> Block{minecraft:dark_oak_trapdoor}[facing=east,half=bottom,open=false,powered=false,waterlogged=true]
+Block{minecraft:kelp}[age=0] id 14191 -> Block{minecraft:nether_brick_wall}[east=low,north=low,south=tall,up=false,waterlogged=true,west=low]
+Block{minecraft:white_carpet} id 9567 -> Block{minecraft:spruce_door}[facing=north,half=lower,hinge=right,open=true,powered=true]
+Block{minecraft:command_block}[conditional=false,facing=north] id 7202 -> Block{minecraft:creeper_head}[rotation=15]
