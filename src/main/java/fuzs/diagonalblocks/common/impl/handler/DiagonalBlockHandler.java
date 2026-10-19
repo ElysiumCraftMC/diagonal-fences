@@ -94,7 +94,7 @@ public class DiagonalBlockHandler {
     }
 
     public static void onTagsUpdated(RegistryAccess registries) {
-        if (DiagonalBlocksConfig.diagonalBlocksByDefault) {
+        if (DiagonalBlocksConfig.diagonalBlocksByDefault && !DiagonalBlocksConfig.revertToVanillaOnLoad) {
             for (Map.Entry<ResourceKey<Item>, Item> entry : Registry.ITEM.entrySet()) {
                 if (entry.getValue() instanceof BlockItem blockItem) {
                     Block block = blockItem.getBlock();
