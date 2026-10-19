@@ -31,3 +31,14 @@ Build: `./gradlew build` (JDK 17). Mappings: official Mojang mappings (the upstr
 * The swap interaction uses `LevelEvent.PARTICLES_AND_SOUND_WAX_ON` (1.19.2 has no particles-only wax-on event),
   so a wax sound plays as well.
 * Destroy particles are hooked via `ParticleEngine#destroy` (upstream: `ClientLevel#addDestroyBlockEffect`).
+
+## Note: worlds and servers from the official 1.19.2 releases (4.x)
+Diagonal Fences 4.x (e.g. 4.2.6) did not register new blocks; it added `north_east`/`south_east`/`south_west`/`north_west`
+properties to every vanilla and modded fence. That grows the global numeric block state id table (21448 -> 26248 states
+in vanilla 1.19.2) and changes the id of every state registered after `minecraft:oak_fence`. Chunks are sent to clients
+as these ids, so when only the server or only the client runs 4.x, the client shows wrong blocks (slabs as waterlogged
+stairs, kelp/glowstone as fences, see [diagonal-blocks#32](https://github.com/Fuzss/diagonal-blocks/issues/32),
+[#48](https://github.com/Fuzss/diagonal-blocks/issues/48)); the save itself stores block states by name and is not
+affected. This backport does not change any vanilla state id (its diagonal fences are separate blocks appended to the
+table), but it does not convert fences saved by 4.x: they load as plain fences without diagonal connections. Server and
+clients must always run the same mod set.
