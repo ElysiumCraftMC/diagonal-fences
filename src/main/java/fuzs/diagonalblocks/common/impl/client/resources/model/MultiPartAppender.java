@@ -83,6 +83,14 @@ public class MultiPartAppender {
                         return baseSelectors;
                     } else if (isTrueHolder.isTrue()) {
                         appendNewSelector(newCondition, selector, direction, newSelectors, registrar);
+                    } else if (!rotateCenter && isUnconnectedCondition(oldCondition)) {
+
+                        // 1.19.2 backport: a part that only shows when there are no connections at all (e.g. the post of
+                        // Macaw's fences, whose posts are otherwise provided by the oriented per-direction parts), must
+                        // also be hidden when only diagonal connections are present: the rotated per-direction parts
+                        // already render the post then, keeping the unrotated part would show a second, misaligned post
+                        iterator.set(new Selector(new AndCondition(Lists.newArrayList(oldCondition,
+                                getAndCondition())), selector.getVariant()));
                     } else {
 
                         // this deals with the model part that shows on the side of the center post of glass panes when the model part corresponding to that direction is NOT being rendered
@@ -122,6 +130,23 @@ public class MultiPartAppender {
 
         selectors.addAll(newSelectors);
         return selectors;
+    }
+
+    /**
+     * @return is this condition exactly "no cardinal connection", i.e. all four cardinal directions are {@code false}
+     */
+    private static boolean isUnconnectedCondition(Condition condition) {
+        List<Condition> terms = condition instanceof AndCondition andCondition ? Lists.newArrayList(andCondition.conditions) : Lists.newArrayList(condition);
+        Set<EightWayDirection> directions = EnumSet.noneOf(EightWayDirection.class);
+        for (Condition term : terms) {
+            if (!(term instanceof KeyValueCondition keyValueCondition)) return false;
+            EightWayDirection direction = EightWayDirection.byName(keyValueCondition.key);
+            if (direction == null || direction.isIntercardinal() || !Boolean.FALSE.toString().equals(keyValueCondition.value)) {
+                return false;
+            }
+            directions.add(direction);
+        }
+        return directions.size() == 4;
     }
 
     private static Map<EightWayDirection, Condition> rotateCenterConditions() {
