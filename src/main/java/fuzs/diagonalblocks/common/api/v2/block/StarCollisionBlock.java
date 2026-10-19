@@ -10,12 +10,10 @@ import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.LevelReader;
-import net.minecraft.world.level.ScheduledTickAccess;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
@@ -196,30 +194,27 @@ public interface StarCollisionBlock extends DiagonalBlock, StarShapeProvider {
 
     /**
      * See
-     * {@link Block#updateShape(BlockState, LevelReader, ScheduledTickAccess, BlockPos, Direction, BlockPos, BlockState,
-     * RandomSource)}.
+     * {@link Block#updateShape(BlockState, Direction, BlockState, LevelAccessor, BlockPos, BlockPos)}.
      */
-    default BlockState _updateShape(BlockState blockState, LevelReader levelReader, ScheduledTickAccess scheduledTickAccess, BlockPos blockPos, Direction direction, BlockPos neighboringBlockPos, BlockState neighboringBlockState, RandomSource randomSource) {
+    default BlockState _updateShape(BlockState blockState, Direction direction, BlockState neighboringBlockState, LevelAccessor levelAccessor, BlockPos blockPos, BlockPos neighboringBlockPos) {
         BlockState newBlockState;
         if (direction.getAxis().getPlane() == Direction.Plane.HORIZONTAL) {
             EightWayDirection[] eightWayDirections = EightWayDirection.toEightWayDirection(direction)
                     .getIntercardinalNeighbors();
-            newBlockState = updateDiagonalProperties(this, blockState, levelReader, blockPos, eightWayDirections);
+            newBlockState = updateDiagonalProperties(this, blockState, levelAccessor, blockPos, eightWayDirections);
         } else {
             newBlockState = blockState;
         }
 
         return this.updateNonDiagonalShape(newBlockState,
-                levelReader,
-                scheduledTickAccess,
-                blockPos,
                 direction,
-                neighboringBlockPos,
                 neighboringBlockState,
-                randomSource);
+                levelAccessor,
+                blockPos,
+                neighboringBlockPos);
     }
 
-    default BlockState updateNonDiagonalShape(BlockState blockState, LevelReader levelReader, ScheduledTickAccess scheduledTickAccess, BlockPos blockPos, Direction direction, BlockPos neighboringBlockPos, BlockState neighboringBlockState, RandomSource randomSource) {
+    default BlockState updateNonDiagonalShape(BlockState blockState, Direction direction, BlockState neighboringBlockState, LevelAccessor levelAccessor, BlockPos blockPos, BlockPos neighboringBlockPos) {
         return this.getNonDiagonalBlockIfPossible(blockState);
     }
 

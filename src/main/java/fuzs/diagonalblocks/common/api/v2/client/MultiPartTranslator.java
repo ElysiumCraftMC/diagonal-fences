@@ -4,13 +4,17 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import fuzs.diagonalblocks.common.api.v2.block.type.DiagonalBlockType;
 import fuzs.diagonalblocks.common.impl.client.resources.model.MultiPartAppender;
-import net.minecraft.client.renderer.block.dispatch.BlockStateModelDispatcher;
-import net.minecraft.client.renderer.block.dispatch.multipart.Selector;
+import net.minecraft.client.renderer.block.model.multipart.Selector;
 import net.minecraft.world.level.block.state.properties.Property;
 
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 1.19.2 backport: operates on the list of multipart {@link Selector selectors} of the base block's
+ * {@link net.minecraft.client.renderer.block.model.multipart.MultiPart}, as the newer
+ * {@code BlockStateModelDispatcher.MultiPartDefinition} does not exist yet.
+ */
 public class MultiPartTranslator {
     private static final Map<DiagonalBlockType, MultiPartTranslator> TRANSLATORS = Maps.newConcurrentMap();
 
@@ -32,17 +36,16 @@ public class MultiPartTranslator {
         return oldValue;
     }
 
-    public BlockStateModelDispatcher.MultiPartDefinition apply(BlockStateModelDispatcher.MultiPartDefinition baseBlockModel) {
-        return this.applyAdditionalSelectors(this.getModelFromBase(baseBlockModel));
+    public List<Selector> apply(List<Selector> baseSelectors, MultiPartAppender.RotatedModelRegistrar registrar) {
+        return this.applyAdditionalSelectors(this.getModelFromBase(baseSelectors), registrar);
     }
 
-    protected BlockStateModelDispatcher.MultiPartDefinition getModelFromBase(BlockStateModelDispatcher.MultiPartDefinition multiPart) {
-        List<Selector> selectors = Lists.newArrayList(multiPart.selectors());
-        return new BlockStateModelDispatcher.MultiPartDefinition(selectors);
+    protected List<Selector> getModelFromBase(List<Selector> selectors) {
+        return Lists.newArrayList(selectors);
     }
 
-    protected BlockStateModelDispatcher.MultiPartDefinition applyAdditionalSelectors(BlockStateModelDispatcher.MultiPartDefinition multiPart) {
-        return MultiPartAppender.appendDiagonalSelectors(multiPart, false);
+    protected List<Selector> applyAdditionalSelectors(List<Selector> selectors, MultiPartAppender.RotatedModelRegistrar registrar) {
+        return MultiPartAppender.appendDiagonalSelectors(selectors, false, registrar);
     }
 
     public boolean allowBaseModelAsFallback() {

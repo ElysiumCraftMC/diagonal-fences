@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "id": "diagonalfences",
+  "version": "${version}",
+  "name": "Diagonal Fences",
+  "description": "Fences connecting diagonally? Wait. That's illegal.\nUnofficial backport of Diagonal Fences 26.3.0 (with the embedded Diagonal Blocks library) to Minecraft 1.19.2.",
+  "authors": [
+    "Fuzs",
+    "XFactHD"
+  ],
+  "contributors": [
+    "1.19.2 backport (unofficial)"
+  ],
+  "contact": {
+    "homepage": "https://modrinth.com/mod/diagonal-fences",
+    "sources": "https://github.com/Fuzss/diagonalfences",
+    "issues": "https://github.com/Fuzss/diagonalfences/issues"
+  },
+  "license": "MPL-2.0",
+  "icon": "pack.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "fuzs.diagonalfences.fabric.DiagonalFencesFabric"
+    ],
+    "client": [
+      "fuzs.diagonalfences.fabric.client.DiagonalFencesFabricClient"
+    ]
+  },
+  "mixins": [
+    "diagonalfences.common.mixins.json",
+    "diagonalfences.fabric.mixins.json"
+  ],
+  "accessWidener": "diagonalfences.accesswidener",
+  "depends": {
+    "fabricloader": ">=0.14.9",
+    "fabric-api": ">=0.76.0",
+    "minecraft": "~1.19.2",
+    "java": ">=17"
+  }
+}

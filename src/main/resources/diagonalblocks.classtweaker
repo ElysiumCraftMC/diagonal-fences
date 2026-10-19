@@ -1,3 +1,0 @@
-classTweaker    v2  official
-accessible  field   net/minecraft/world/phys/shapes/VoxelShape  shape   Lnet/minecraft/world/phys/shapes/DiscreteVoxelShape;
-mutable field   net/minecraft/world/phys/shapes/VoxelShape  shape   Lnet/minecraft/world/phys/shapes/DiscreteVoxelShape;

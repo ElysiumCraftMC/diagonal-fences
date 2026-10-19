@@ -1,7 +1,7 @@
 package fuzs.diagonalblocks.common.impl.world.phys.shapes;
 
-import fuzs.puzzleslib.common.api.util.v1.ShapesHelper;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
 import java.util.stream.Stream;
@@ -33,7 +33,13 @@ public class VoxelUtils {
     }
 
     public static VoxelShape box(Vec3[] outline) {
-        return ShapesHelper.box(outline[0].x, outline[0].y, outline[0].z, outline[1].x, outline[1].y, outline[1].z);
+        // replacement for Puzzles Lib's ShapesHelper::box, which allows for unordered corners
+        return Shapes.box(Math.min(outline[0].x, outline[1].x),
+                Math.min(outline[0].y, outline[1].y),
+                Math.min(outline[0].z, outline[1].z),
+                Math.max(outline[0].x, outline[1].x),
+                Math.max(outline[0].y, outline[1].y),
+                Math.max(outline[0].z, outline[1].z));
     }
 
     public static Vec3[] createVectorArray(Float... values) {

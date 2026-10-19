@@ -1,20 +1,16 @@
 package fuzs.diagonalblocks.common.impl.handler;
 
 import com.google.common.collect.BiMap;
+import com.google.common.collect.ImmutableList;
 import fuzs.diagonalblocks.common.api.v2.block.type.DiagonalBlockType;
 import fuzs.diagonalblocks.common.impl.DiagonalBlocks;
-import fuzs.diagonalblocks.common.impl.config.CommonConfig;
-import fuzs.diagonalblocks.common.impl.config.ServerConfig;
-import fuzs.puzzleslib.common.api.block.v1.BlockConversionHelper;
-import fuzs.puzzleslib.common.api.event.v1.RegistryEntryAddedCallback;
-import fuzs.puzzleslib.common.api.event.v1.core.EventResultHolder;
+import fuzs.diagonalblocks.common.impl.config.DiagonalBlocksConfig;
+import net.fabricmc.fabric.api.event.registry.RegistryEntryAddedCallback;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
 import net.minecraft.core.RegistryAccess;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.server.ReloadableServerResources;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
@@ -27,26 +23,38 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.gameevent.GameEvent;
 import net.minecraft.world.phys.BlockHitResult;
 
+import java.util.List;
 import java.util.Map;
-import java.util.function.BiConsumer;
-import java.util.function.Supplier;
 
 public class DiagonalBlockHandler {
 
-    public static RegistryEntryAddedCallback<Block> onBlockAdded(DiagonalBlockType type) {
-        return (Registry<Block> registry, Identifier id, Block entry, BiConsumer<Identifier, Supplier<Block>> registrar) -> {
-            if (type.isTarget(id, entry)) {
-                Identifier identifier = type.id(id.getNamespace() + "/" + id.getPath());
-                registrar.accept(identifier, () -> {
-                    return type.makeDiagonalBlock(id, entry);
-                });
-            }
-        };
+    /**
+     * 1.19.2 backport: replaces Puzzles Lib's {@code RegistryEntryAddedCallback}, which also replays already registered
+     * entries.
+     */
+    public static void registerBlockAddedListener(DiagonalBlockType type) {
+        // copy, as we are going to register new entries while iterating
+        List<Map.Entry<ResourceKey<Block>, Block>> entries = ImmutableList.copyOf(Registry.BLOCK.entrySet());
+        for (Map.Entry<ResourceKey<Block>, Block> entry : entries) {
+            onBlockAdded(type, entry.getKey().location(), entry.getValue());
+        }
+        RegistryEntryAddedCallback.event(Registry.BLOCK).register((int rawId, ResourceLocation id, Block block) -> {
+            onBlockAdded(type, id, block);
+        });
     }
 
-    public static EventResultHolder<InteractionResult> onUseBlock(Player player, Level level, InteractionHand interactionHand, BlockHitResult hitResult) {
-        if (!DiagonalBlocks.CONFIG.get(ServerConfig.class).swapBlocksByInteracting) {
-            return EventResultHolder.pass();
+    private static void onBlockAdded(DiagonalBlockType type, ResourceLocation id, Block entry) {
+        if (type.isTarget(id, entry)) {
+            ResourceLocation identifier = type.id(id.getNamespace() + "/" + id.getPath());
+            if (!Registry.BLOCK.containsKey(identifier)) {
+                Registry.register(Registry.BLOCK, identifier, type.makeDiagonalBlock(id, entry));
+            }
+        }
+    }
+
+    public static InteractionResult onUseBlock(Player player, Level level, InteractionHand interactionHand, BlockHitResult hitResult) {
+        if (!DiagonalBlocksConfig.swapBlocksByInteracting || player.isSpectator()) {
+            return InteractionResult.PASS;
         }
 
         // allow for toggling between diagonal and non-diagonal block variants via shift+right-clicking with empty hand
@@ -69,28 +77,28 @@ public class DiagonalBlockHandler {
                         BlockState newBlockState = newBlock.withPropertiesOf(blockState);
                         newBlockState = Block.updateFromNeighbourShapes(newBlockState, level, blockPos);
                         level.setBlock(blockPos, newBlockState, 3);
-                        level.neighborChanged(blockPos, newBlock, null);
+                        level.neighborChanged(blockPos, newBlock, blockPos);
                         level.gameEvent(GameEvent.BLOCK_CHANGE, blockPos, GameEvent.Context.of(player, newBlockState));
-                        level.levelEvent(player, LevelEvent.PARTICLES_WAX_ON, blockPos, 0);
-                        return EventResultHolder.interrupt(InteractionResult.SUCCESS);
+                        level.levelEvent(player, LevelEvent.PARTICLES_AND_SOUND_WAX_ON, blockPos, 0);
+                        return InteractionResult.sidedSuccess(level.isClientSide);
                     }
                 }
             }
         }
 
-        return EventResultHolder.pass();
+        return InteractionResult.PASS;
     }
 
-    public static void onServerResourcesLoad(ReloadableServerResources serverResources, RegistryAccess registries) {
+    public static void onServerResourcesLoad(RegistryAccess registries) {
         onTagsUpdated(registries);
     }
 
     public static void onTagsUpdated(RegistryAccess registries) {
-        if (DiagonalBlocks.CONFIG.get(CommonConfig.class).diagonalBlocksByDefault) {
-            for (Map.Entry<ResourceKey<Item>, Item> entry : BuiltInRegistries.ITEM.entrySet()) {
+        if (DiagonalBlocksConfig.diagonalBlocksByDefault) {
+            for (Map.Entry<ResourceKey<Item>, Item> entry : Registry.ITEM.entrySet()) {
                 if (entry.getValue() instanceof BlockItem blockItem) {
                     Block block = blockItem.getBlock();
-                    setItemForBlock(entry.getKey().identifier(), blockItem, block);
+                    setItemForBlock(entry.getKey().location(), blockItem, block);
                     setBlockForItem(blockItem, block);
                 }
             }
@@ -101,11 +109,12 @@ public class DiagonalBlockHandler {
         }
     }
 
-    private static void setItemForBlock(Identifier identifier, BlockItem blockItem, Block block) {
+    private static void setItemForBlock(ResourceLocation identifier, BlockItem blockItem, Block block) {
         for (DiagonalBlockType type : DiagonalBlockType.TYPES) {
             // item id should be fine to use for block items
-            if (type.isTarget(identifier, block)) {
-                BlockConversionHelper.setItemForBlock(type.getBlockConversions().get(block), blockItem);
+            Block diagonalBlock = type.getBlockConversions().get(block);
+            if (diagonalBlock != null && type.isTarget(identifier, block)) {
+                BlockConversionHelper.setItemForBlock(diagonalBlock, blockItem);
                 break;
             }
         }

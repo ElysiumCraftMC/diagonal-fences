@@ -1,14 +1,13 @@
 package fuzs.diagonalfences.fabric.client;
 
-import fuzs.diagonalfences.common.DiagonalFences;
-import fuzs.diagonalfences.common.client.DiagonalFencesClient;
-import fuzs.puzzleslib.common.api.client.core.v1.ClientModConstructor;
+import fuzs.diagonalblocks.common.impl.client.DiagonalBlocksClient;
 import net.fabricmc.api.ClientModInitializer;
 
 public class DiagonalFencesFabricClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
-        ClientModConstructor.construct(DiagonalFences.MOD_ID, DiagonalFencesClient::new);
+        // upstream only registers a Puzzles Lib config screen here, which is not available in this backport
+        DiagonalBlocksClient.onConstructMod();
     }
 }

@@ -1,39 +1,56 @@
 package fuzs.diagonalblocks.common.impl.client.resources.model;
 
 import com.google.common.collect.Lists;
-import fuzs.diagonalblocks.common.api.v2.block.StarCollisionBlock;
+import com.mojang.math.Transformation;
 import fuzs.diagonalblocks.common.api.v2.util.EightWayDirection;
-import net.minecraft.client.data.models.blockstates.ConditionBuilder;
-import net.minecraft.client.renderer.block.dispatch.BlockStateModel;
-import net.minecraft.client.renderer.block.dispatch.BlockStateModelDispatcher;
-import net.minecraft.client.renderer.block.dispatch.multipart.CombinedCondition;
-import net.minecraft.client.renderer.block.dispatch.multipart.Condition;
-import net.minecraft.client.renderer.block.dispatch.multipart.Selector;
+import net.minecraft.client.renderer.block.model.MultiVariant;
+import net.minecraft.client.renderer.block.model.Variant;
+import net.minecraft.client.renderer.block.model.multipart.AndCondition;
+import net.minecraft.client.renderer.block.model.multipart.Condition;
+import net.minecraft.client.renderer.block.model.multipart.KeyValueCondition;
+import net.minecraft.client.renderer.block.model.multipart.OrCondition;
+import net.minecraft.client.renderer.block.model.multipart.Selector;
 import net.minecraft.core.Direction;
-import net.minecraft.world.level.block.state.properties.BooleanProperty;
+import net.minecraft.resources.ResourceLocation;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.commons.lang3.mutable.MutableObject;
 
 import java.util.*;
-import java.util.function.Consumer;
 
 public class MultiPartAppender {
 
     /**
+     * 1.19.2 backport: the rotated model parts cannot be stored directly in a selector as is possible with newer
+     * versions, they need to be registered as separate unbaked models, so the selector can reference them via a
+     * {@link Variant}.
+     */
+    @FunctionalInterface
+    public interface RotatedModelRegistrar {
+
+        /**
+         * @param variant   the original variant
+         * @param direction the cardinal direction of the original model part
+         * @return the location the rotated model can be found at
+         */
+        ResourceLocation register(Variant variant, Direction direction);
+    }
+
+    /**
      * Append the multipart variant selectors needed for the diagonal arms of the fence, wall, etc.
      *
-     * @param multiPart the original multipart unbaked variant
+     * @param baseSelectors the original multipart selectors
      */
-    public static BlockStateModelDispatcher.MultiPartDefinition appendDiagonalSelectors(BlockStateModelDispatcher.MultiPartDefinition multiPart, boolean rotateCenter) {
+    public static List<Selector> appendDiagonalSelectors(List<Selector> baseSelectors, boolean rotateCenter, RotatedModelRegistrar registrar) {
 
-        List<Selector> selectors = new ArrayList<>(multiPart.selectors());
+        List<Selector> selectors = new ArrayList<>(baseSelectors);
         List<Selector> newSelectors = new ArrayList<>();
 
         for (ListIterator<Selector> iterator = selectors.listIterator(); iterator.hasNext(); ) {
 
             Selector selector = iterator.next();
-            Condition oldCondition = selector.condition().orElse(null);
+            // 1.19.2: unconditional selectors use Condition.TRUE instead of an empty optional
+            Condition oldCondition = selector.condition != Condition.TRUE ? selector.condition : null;
 
             if (oldCondition != null) {
 
@@ -63,17 +80,17 @@ public class MultiPartAppender {
                     // intercardinal selectors are already present, either a resource pack has dedicated support for diagonal fences or the model baking event has run multiple times
                     // either way stop any processing of selectors, no new selectors have been added as that's done at the end of the method
                     if (direction.isIntercardinal()) {
-                        return multiPart;
+                        return baseSelectors;
                     } else if (isTrueHolder.isTrue()) {
-                        appendNewSelector(newCondition, selector, direction, newSelectors);
+                        appendNewSelector(newCondition, selector, direction, newSelectors, registrar);
                     } else {
 
                         // this deals with the model part that shows on the side of the center post of glass panes when the model part corresponding to that direction is NOT being rendered
                         // we adjust the condition so it no longer renders when only two opposite intercardinal directions are present, since we handle that with our own model parts
-                        Condition newCondition22 = ConditionHelper.negate(new CombinedCondition(CombinedCondition.Operation.OR,
-                                List.copyOf(rotateCenterConditions().values())));
-                        Selector newSelector = new Selector(Optional.of(new CombinedCondition(CombinedCondition.Operation.AND,
-                                Lists.newArrayList(oldCondition, newCondition22))), selector.variant());
+                        Condition newCondition22 = ConditionHelper.negate(new OrCondition(List.copyOf(
+                                rotateCenterConditions().values())));
+                        Selector newSelector = new Selector(new AndCondition(Lists.newArrayList(oldCondition,
+                                newCondition22)), selector.getVariant());
                         iterator.set(newSelector);
 
                         // the model parts used when only two opposite intercardinal directions are present
@@ -82,7 +99,8 @@ public class MultiPartAppender {
                         appendNewSelector(otherNewCondition,
                                 selector,
                                 direction.rotateClockWise().rotateClockWise(),
-                                newSelectors);
+                                newSelectors,
+                                registrar);
                     }
                 }
             } else if (rotateCenter) {
@@ -93,18 +111,17 @@ public class MultiPartAppender {
                 Map<EightWayDirection, Condition> conditions = rotateCenterConditions();
                 for (Map.Entry<EightWayDirection, Condition> entry : conditions.entrySet()) {
 
-                    appendNewSelector(entry.getValue(), selector, entry.getKey(), newSelectors);
+                    appendNewSelector(entry.getValue(), selector, entry.getKey(), newSelectors, registrar);
                 }
 
-                Selector newSelector = new Selector(Optional.of(ConditionHelper.negate(new CombinedCondition(
-                        CombinedCondition.Operation.OR,
-                        List.copyOf(conditions.values())))), selector.variant());
+                Selector newSelector = new Selector(ConditionHelper.negate(new OrCondition(List.copyOf(conditions.values()))),
+                        selector.getVariant());
                 iterator.set(newSelector);
             }
         }
 
         selectors.addAll(newSelectors);
-        return new BlockStateModelDispatcher.MultiPartDefinition(selectors);
+        return selectors;
     }
 
     private static Map<EightWayDirection, Condition> rotateCenterConditions() {
@@ -125,20 +142,21 @@ public class MultiPartAppender {
     }
 
     private static Condition getAndCondition(EightWayDirection... directions) {
-        ConditionBuilder conditionBuilder = new ConditionBuilder();
+        List<Condition> conditions = new ArrayList<>();
         for (EightWayDirection direction : EightWayDirection.values()) {
-            BooleanProperty property = StarCollisionBlock.PROPERTY_BY_DIRECTION.get(direction);
             Boolean value = ArrayUtils.contains(directions, direction) ? Boolean.TRUE : Boolean.FALSE;
-            conditionBuilder.term(property, value);
+            conditions.add(new KeyValueCondition(direction.getSerializedName(), value.toString()));
         }
-        return conditionBuilder.build();
+        return new AndCondition(conditions);
     }
 
-    private static void appendNewSelector(Condition condition, Selector selector, EightWayDirection direction, List<Selector> newSelectors) {
-        appendNewSelector(condition, selector.variant(), direction.toDirection(), newSelectors::add);
-    }
-
-    private static void appendNewSelector(Condition condition, BlockStateModel.Unbaked variant, Direction direction, Consumer<Selector> selectorConsumer) {
-        selectorConsumer.accept(new Selector(Optional.of(condition), new RotatedVariant(variant, direction)));
+    private static void appendNewSelector(Condition condition, Selector selector, EightWayDirection direction, List<Selector> newSelectors, RotatedModelRegistrar registrar) {
+        Direction vanillaDirection = direction.toDirection();
+        List<Variant> newVariants = new ArrayList<>();
+        for (Variant variant : selector.getVariant().getVariants()) {
+            ResourceLocation location = registrar.register(variant, vanillaDirection);
+            newVariants.add(new Variant(location, Transformation.identity(), false, variant.getWeight()));
+        }
+        newSelectors.add(new Selector(condition, new MultiVariant(newVariants)));
     }
 }

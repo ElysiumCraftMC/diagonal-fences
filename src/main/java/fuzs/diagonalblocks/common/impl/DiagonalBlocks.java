@@ -2,50 +2,40 @@ package fuzs.diagonalblocks.common.impl;
 
 import fuzs.diagonalblocks.common.api.v2.block.type.DiagonalBlockType;
 import fuzs.diagonalblocks.common.api.v2.block.type.DiagonalBlockTypes;
-import fuzs.diagonalblocks.common.impl.config.CommonConfig;
-import fuzs.diagonalblocks.common.impl.config.ServerConfig;
+import fuzs.diagonalblocks.common.impl.config.DiagonalBlocksConfig;
 import fuzs.diagonalblocks.common.impl.handler.DiagonalBlockHandler;
 import fuzs.diagonalblocks.common.impl.init.ModRegistry;
-import fuzs.puzzleslib.common.api.config.v3.ConfigHolder;
-import fuzs.puzzleslib.common.api.core.v1.ModConstructor;
-import fuzs.puzzleslib.common.api.core.v1.ModLoaderEnvironment;
-import fuzs.puzzleslib.common.api.event.v1.core.EventPhase;
-import fuzs.puzzleslib.common.api.event.v1.entity.player.PlayerInteractEvents;
-import fuzs.puzzleslib.common.api.event.v1.server.ServerResourcesLoadCallback;
-import net.minecraft.resources.Identifier;
+import net.fabricmc.fabric.api.event.player.UseBlockCallback;
+import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.resources.ResourceLocation;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-public class DiagonalBlocks implements ModConstructor {
+public class DiagonalBlocks {
     public static final String MOD_ID = "diagonalblocks";
     public static final String MOD_NAME = "Diagonal Blocks";
     public static final Logger LOGGER = LogManager.getLogger(DiagonalBlocks.MOD_NAME);
 
-    public static final ConfigHolder CONFIG = ConfigHolder.builder(MOD_ID)
-            .common(CommonConfig.class)
-            .server(ServerConfig.class);
+    private static boolean constructed;
 
-    @Override
-    public void onConstructMod() {
+    public static void onConstructMod() {
+        if (constructed) return;
+        constructed = true;
+        DiagonalBlocksConfig.load();
         ModRegistry.bootstrap();
-        if (ModLoaderEnvironment.INSTANCE.isDevelopmentEnvironment(MOD_ID)) {
+        if (FabricLoader.getInstance().isDevelopmentEnvironment() && Boolean.getBoolean("diagonalblocks.devTypes")) {
+            // upstream registers all types in its own dev environment, only fences are available in this backport
             DiagonalBlockType.register(DiagonalBlockTypes.FENCE);
-            DiagonalBlockType.register(DiagonalBlockTypes.WINDOW);
-            DiagonalBlockType.register(DiagonalBlockTypes.WALL);
         }
-    }
-
-    @Override
-    public void onCommonSetup() {
         registerEventHandlers();
     }
 
     private static void registerEventHandlers() {
-        ServerResourcesLoadCallback.EVENT.register(EventPhase.FIRST, DiagonalBlockHandler::onServerResourcesLoad);
-        PlayerInteractEvents.USE_BLOCK.register(DiagonalBlockHandler::onUseBlock);
+        // server resources (tags) loading is hooked via ReloadableServerResourcesMixin
+        UseBlockCallback.EVENT.register(DiagonalBlockHandler::onUseBlock);
     }
 
-    public static Identifier id(String path) {
-        return Identifier.fromNamespaceAndPath(MOD_ID, path);
+    public static ResourceLocation id(String path) {
+        return new ResourceLocation(MOD_ID, path);
     }
 }

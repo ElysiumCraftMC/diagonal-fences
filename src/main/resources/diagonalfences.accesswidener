@@ -1,0 +1,16 @@
+accessWidener v1 named
+# VoxelShape internals, needed by the custom diagonal shapes (ExtensibleVoxelShape, NoneVoxelShape, VoxelCollection)
+accessible field net/minecraft/world/phys/shapes/VoxelShape shape Lnet/minecraft/world/phys/shapes/DiscreteVoxelShape;
+mutable field net/minecraft/world/phys/shapes/VoxelShape shape Lnet/minecraft/world/phys/shapes/DiscreteVoxelShape;
+# block <-> item conversion (replaces Puzzles Lib's BlockConversionHelper)
+accessible field net/minecraft/world/level/block/Block item Lnet/minecraft/world/item/Item;
+accessible field net/minecraft/world/level/block/Block descriptionId Ljava/lang/String;
+accessible field net/minecraft/world/item/BlockItem block Lnet/minecraft/world/level/block/Block;
+mutable field net/minecraft/world/item/BlockItem block Lnet/minecraft/world/level/block/Block;
+accessible method net/minecraft/core/Holder$Reference bindTags (Ljava/util/Collection;)V
+# multipart model condition introspection (replaces the newer record based multipart API)
+accessible field net/minecraft/client/renderer/block/model/multipart/Selector condition Lnet/minecraft/client/renderer/block/model/multipart/Condition;
+accessible field net/minecraft/client/renderer/block/model/multipart/KeyValueCondition key Ljava/lang/String;
+accessible field net/minecraft/client/renderer/block/model/multipart/KeyValueCondition value Ljava/lang/String;
+accessible field net/minecraft/client/renderer/block/model/multipart/AndCondition conditions Ljava/lang/Iterable;
+accessible field net/minecraft/client/renderer/block/model/multipart/OrCondition conditions Ljava/lang/Iterable;

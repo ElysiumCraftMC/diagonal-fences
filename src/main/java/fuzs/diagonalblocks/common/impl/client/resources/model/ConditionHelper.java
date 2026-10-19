@@ -1,19 +1,14 @@
 package fuzs.diagonalblocks.common.impl.client.resources.model;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import fuzs.diagonalblocks.common.impl.DiagonalBlocks;
-import net.minecraft.client.renderer.block.dispatch.multipart.CombinedCondition;
-import net.minecraft.client.renderer.block.dispatch.multipart.Condition;
-import net.minecraft.client.renderer.block.dispatch.multipart.KeyValueCondition;
-import net.minecraft.world.level.block.state.StateDefinition;
-import net.minecraft.world.level.block.state.StateHolder;
-import org.jspecify.annotations.Nullable;
+import net.minecraft.client.renderer.block.model.multipart.AndCondition;
+import net.minecraft.client.renderer.block.model.multipart.Condition;
+import net.minecraft.client.renderer.block.model.multipart.KeyValueCondition;
+import net.minecraft.client.renderer.block.model.multipart.OrCondition;
 
-import java.util.List;
-import java.util.Map;
+import org.jetbrains.annotations.Nullable;
 import java.util.function.BinaryOperator;
-import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 
 public final class ConditionHelper {
@@ -25,53 +20,47 @@ public final class ConditionHelper {
     /**
      * Will return {@code null} when any of the transformers return {@code null} for the string, instead of returning an
      * empty condition.
+     * <p>1.19.2 backport: works on the old class based conditions ({@link KeyValueCondition}, {@link AndCondition},
+     * {@link OrCondition}); the value of a key value condition is the raw string from the model json (e.g.
+     * {@code true}, {@code !low} or {@code low|tall}).
      */
     @Nullable
     public static Condition deepCopy(Condition condition, UnaryOperator<String> keyTransformer, BinaryOperator<String> valueTransformer) {
-        if (condition instanceof KeyValueCondition(Map<String, KeyValueCondition.Terms> tests)) {
-            ImmutableMap.Builder<String, KeyValueCondition.Terms> stringTermsBuilder = ImmutableMap.builder();
-            for (Map.Entry<String, KeyValueCondition.Terms> entry : tests.entrySet()) {
-                String newKey = keyTransformer.apply(entry.getKey());
-                if (newKey != null) {
-                    ImmutableList.Builder<KeyValueCondition.Term> termsBuilder = ImmutableList.builder();
-                    for (KeyValueCondition.Term term : entry.getValue().entries()) {
-                        String newValue = valueTransformer.apply(entry.getKey(), term.value());
-                        if (newValue != null) {
-                            termsBuilder.add(new KeyValueCondition.Term(newValue, term.negated()));
-                        }
-                    }
-                    ImmutableList<KeyValueCondition.Term> newEntries = termsBuilder.build();
-                    if (!newEntries.isEmpty()) {
-                        stringTermsBuilder.put(newKey, new KeyValueCondition.Terms(newEntries));
-                    }
+        if (condition instanceof KeyValueCondition keyValueCondition) {
+            String newKey = keyTransformer.apply(keyValueCondition.key);
+            if (newKey != null) {
+                String newValue = valueTransformer.apply(keyValueCondition.key, keyValueCondition.value);
+                if (newValue != null) {
+                    return new KeyValueCondition(newKey, newValue);
                 }
             }
-            ImmutableMap<String, KeyValueCondition.Terms> newTests = stringTermsBuilder.build();
-            return newTests.isEmpty() ? null : new KeyValueCondition(newTests);
-        } else if (condition instanceof CombinedCondition(
-                CombinedCondition.Operation operation, List<Condition> terms
-        )) {
-            ImmutableList.Builder<Condition> termsBuilder = ImmutableList.builder();
-            for (Condition term : terms) {
-                Condition newCondition = deepCopy(term, keyTransformer, valueTransformer);
-                if (newCondition != null) {
-                    termsBuilder.add(newCondition);
-                }
-            }
-            ImmutableList<Condition> newTerms = termsBuilder.build();
-            return newTerms.isEmpty() ? null : new CombinedCondition(operation, newTerms);
+            return null;
+        } else if (condition instanceof AndCondition andCondition) {
+            ImmutableList<Condition> newTerms = deepCopyAll(andCondition.conditions, keyTransformer, valueTransformer);
+            return newTerms.isEmpty() ? null : new AndCondition(newTerms);
+        } else if (condition instanceof OrCondition orCondition) {
+            ImmutableList<Condition> newTerms = deepCopyAll(orCondition.conditions, keyTransformer, valueTransformer);
+            return newTerms.isEmpty() ? null : new OrCondition(newTerms);
+        } else if (condition == Condition.TRUE || condition == Condition.FALSE) {
+            return condition;
         } else {
             DiagonalBlocks.LOGGER.warn("Unrecognized condition: {}", condition);
             return condition;
         }
     }
 
-    public static Condition negate(Condition condition) {
-        return new Condition() {
-            @Override
-            public <O, S extends StateHolder<O, S>> Predicate<S> instantiate(StateDefinition<O, S> stateDefinition) {
-                return condition.instantiate(stateDefinition).negate();
+    private static ImmutableList<Condition> deepCopyAll(Iterable<? extends Condition> conditions, UnaryOperator<String> keyTransformer, BinaryOperator<String> valueTransformer) {
+        ImmutableList.Builder<Condition> termsBuilder = ImmutableList.builder();
+        for (Condition term : conditions) {
+            Condition newCondition = deepCopy(term, keyTransformer, valueTransformer);
+            if (newCondition != null) {
+                termsBuilder.add(newCondition);
             }
-        };
+        }
+        return termsBuilder.build();
+    }
+
+    public static Condition negate(Condition condition) {
+        return stateDefinition -> condition.getPredicate(stateDefinition).negate();
     }
 }

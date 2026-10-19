@@ -20,7 +20,6 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 
 import java.util.Arrays;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.stream.Stream;
 
 public interface StarShapeProvider {
@@ -47,16 +46,6 @@ public interface StarShapeProvider {
         }), (int index) -> {
             return this.makeDiagonalShapes(nodeWidth, extensionWidth, nodeTop, extensionBottom, extensionTop);
         });
-    }
-
-    default Function<BlockState, VoxelShape> _makeShapes(float nodeWidth, float nodeHeight, float extensionWidth, float extensionBottom, float extensionHeight) {
-        return (BlockState blockState) -> {
-            return this._makeLegacyShapes(nodeWidth / 2.0F,
-                    extensionWidth / 2.0F,
-                    nodeHeight,
-                    extensionBottom,
-                    extensionHeight)[this._getAABBIndex(blockState)];
-        };
     }
 
     default VoxelShape[] makeDiagonalShapes(float nodeWidth, float extensionWidth, float nodeTop, float extensionBottom, float extensionTop) {

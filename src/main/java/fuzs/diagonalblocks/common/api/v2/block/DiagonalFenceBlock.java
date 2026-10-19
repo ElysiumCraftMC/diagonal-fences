@@ -6,19 +6,14 @@ import fuzs.diagonalblocks.common.api.v2.util.EightWayDirection;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.tags.BlockTags;
-import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.LevelAccessor;
-import net.minecraft.world.level.LevelReader;
-import net.minecraft.world.level.ScheduledTickAccess;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.FenceBlock;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.phys.shapes.VoxelShape;
-
-import java.util.function.Function;
 
 public class DiagonalFenceBlock extends FenceBlock implements StarCollisionBlock {
 
@@ -28,8 +23,14 @@ public class DiagonalFenceBlock extends FenceBlock implements StarCollisionBlock
     }
 
     @Override
-    protected Function<BlockState, VoxelShape> makeShapes(float nodeWidth, float nodeHeight, float extensionWidth, float extensionBottom, float extensionHeight) {
-        return this._makeShapes(nodeWidth, nodeHeight, extensionWidth, extensionBottom, extensionHeight);
+    protected VoxelShape[] makeShapes(float nodeWidth, float extensionWidth, float nodeHeight, float extensionBottom, float extensionHeight) {
+        // 1.19.2: CrossCollisionBlock still uses the legacy array based shape lookup with half widths
+        return this._makeLegacyShapes(nodeWidth, extensionWidth, nodeHeight, extensionBottom, extensionHeight);
+    }
+
+    @Override
+    protected int getAABBIndex(BlockState blockState) {
+        return this._getAABBIndex(blockState);
     }
 
     @Override
@@ -49,23 +50,19 @@ public class DiagonalFenceBlock extends FenceBlock implements StarCollisionBlock
     }
 
     @Override
-    public BlockState updateShape(BlockState blockState, LevelReader levelReader, ScheduledTickAccess scheduledTickAccess, BlockPos blockPos, Direction direction, BlockPos neighboringBlockPos, BlockState neighboringBlockState, RandomSource randomSource) {
+    public BlockState updateShape(BlockState blockState, Direction direction, BlockState neighboringBlockState, LevelAccessor levelAccessor, BlockPos blockPos, BlockPos neighboringBlockPos) {
         blockState = super.updateShape(blockState,
-                levelReader,
-                scheduledTickAccess,
-                blockPos,
                 direction,
-                neighboringBlockPos,
                 neighboringBlockState,
-                randomSource);
+                levelAccessor,
+                blockPos,
+                neighboringBlockPos);
         return this._updateShape(blockState,
-                levelReader,
-                scheduledTickAccess,
-                blockPos,
                 direction,
-                neighboringBlockPos,
                 neighboringBlockState,
-                randomSource);
+                levelAccessor,
+                blockPos,
+                neighboringBlockPos);
     }
 
     @Override

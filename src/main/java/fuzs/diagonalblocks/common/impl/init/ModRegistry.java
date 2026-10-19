@@ -1,14 +1,13 @@
 package fuzs.diagonalblocks.common.impl.init;
 
 import fuzs.diagonalblocks.common.impl.DiagonalBlocks;
-import fuzs.puzzleslib.common.api.init.v3.tags.TagFactory;
+import net.minecraft.core.Registry;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.block.Block;
 
 public class ModRegistry {
-    static final TagFactory TAGS = TagFactory.make(DiagonalBlocks.MOD_ID);
-    public static final TagKey<Block> NEVER_BLOCKS_DIAGONAL_CONNECTIONS_BLOCK_TAG = TAGS.registerBlockTag(
-            "never_blocks_diagonal_connections");
+    public static final TagKey<Block> NEVER_BLOCKS_DIAGONAL_CONNECTIONS_BLOCK_TAG = TagKey.create(Registry.BLOCK_REGISTRY,
+            DiagonalBlocks.id("never_blocks_diagonal_connections"));
 
     public static void bootstrap() {
         // NO-OP

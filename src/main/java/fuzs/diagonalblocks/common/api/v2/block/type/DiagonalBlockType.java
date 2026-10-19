@@ -3,9 +3,7 @@ package fuzs.diagonalblocks.common.api.v2.block.type;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.Sets;
 import fuzs.diagonalblocks.common.impl.handler.DiagonalBlockHandler;
-import fuzs.puzzleslib.common.api.event.v1.RegistryEntryAddedCallback;
-import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockBehaviour;
@@ -31,25 +29,26 @@ public interface DiagonalBlockType {
         // single line haha
         if (!TYPES.contains(type) && TYPES.add(type)) {
             // due to how this event is implemented on Fabric it's registration must be triggered by the mod registering the new diagonal block type
-            RegistryEntryAddedCallback.registryEntryAdded(Registries.BLOCK)
-                    .register(DiagonalBlockHandler.onBlockAdded(type));
+            // 1.19.2 backport: uses Fabric API's registry entry added callback directly (instead of Puzzles Lib),
+            // also handles blocks that have already been registered before this type was registered
+            DiagonalBlockHandler.registerBlockAddedListener(type);
         }
     }
 
     /**
-     * Creates a new {@link Identifier} for this type with the type's namespace.
+     * Creates a new {@link ResourceLocation} for this type with the type's namespace.
      *
      * @param path path for the identifier
      * @return the new identifier for the type
      */
-    Identifier id(String path);
+    ResourceLocation id(String path);
 
     /**
      * A block blacklist for preventing the diagonal block from being set to the corresponding
      * {@link net.minecraft.world.item.BlockItem}.
      * <p>Note that the diagonal block will still exist (although unused). It is registered to the block registry and
      * has a block model generated for it. Preventing block registration is possible using
-     * {@link #disableBlockFactory(Identifier)}.
+     * {@link #disableBlockFactory(ResourceLocation)}.
      *
      * @return the blacklist block tag key
      */
@@ -62,19 +61,19 @@ public interface DiagonalBlockType {
      * @param block            the block
      * @return can this block receive a diagonal variant
      */
-    boolean isTarget(Identifier identifier, Block block);
+    boolean isTarget(ResourceLocation identifier, Block block);
 
     /**
      * Creates a new diagonal block implementation from the non-diagonal base block.
      * <p>The result of this method in the default implementation can be further customized via
-     * {@link #registerBlockFactory(Identifier, Function)}, {@link #registerDefaultBlockFactory(Identifier)}
-     * and {@link #disableBlockFactory(Identifier)}.
+     * {@link #registerBlockFactory(ResourceLocation, Function)}, {@link #registerDefaultBlockFactory(ResourceLocation)}
+     * and {@link #disableBlockFactory(ResourceLocation)}.
      *
      * @param identifier the identifier for the non-diagonal base block
      * @param block            the non-diagonal base block
      * @return the new diagonal block replacement
      */
-    Block makeDiagonalBlock(Identifier identifier, Block block);
+    Block makeDiagonalBlock(ResourceLocation identifier, Block block);
 
     /**
      * @return can this type convert to the original if no diagonal block properties are in use
@@ -102,18 +101,18 @@ public interface DiagonalBlockType {
      *                         non-diagonal base block, not for the diagonal block)
      * @param factory          the factory override
      */
-    void registerBlockFactory(Identifier identifier, Function<Block, Function<BlockBehaviour.Properties, Block>> factory);
+    void registerBlockFactory(ResourceLocation identifier, Function<Block, Function<BlockBehaviour.Properties, Block>> factory);
 
     /**
      * Allows for forcing a block to be turned into a diagonal block, even though it would otherwise not be targeted
-     * (see {@link #isTarget(Identifier, Block)}).
+     * (see {@link #isTarget(ResourceLocation, Block)}).
      * <p>Useful for blocks that do not extend the vanilla base class (like
      * {@link net.minecraft.world.level.block.FenceBlock}), but still provide the same functionality.
      *
      * @param identifier the identifier for the block to override the factory for (this is the identifier for the
      *                         non-diagonal base block, not for the diagonal block)
      */
-    void registerDefaultBlockFactory(Identifier identifier);
+    void registerDefaultBlockFactory(ResourceLocation identifier);
 
     /**
      * Prevents a block from generating a diagonal variant. Provides an alternative to the blacklist tag from
@@ -124,5 +123,5 @@ public interface DiagonalBlockType {
      * @param identifier the identifier for the block to override the factory for (this is the identifier for the
      *                         non-diagonal base block, not for the diagonal block)
      */
-    void disableBlockFactory(Identifier identifier);
+    void disableBlockFactory(ResourceLocation identifier);
 }

@@ -4,9 +4,8 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Maps;
 import fuzs.diagonalblocks.common.api.v2.block.DiagonalBlock;
-import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.Identifier;
-import net.minecraft.resources.ResourceKey;
+import net.minecraft.core.Registry;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockBehaviour;
@@ -28,12 +27,12 @@ public class DiagonalBlockTypeImpl implements DiagonalBlockType {
 
     private final BiMap<Block, Block> blocks = HashBiMap.create();
     private final BiMap<Block, Block> blocksView = Maps.unmodifiableBiMap(this.blocks);
-    private final Identifier name;
+    private final ResourceLocation name;
     private final Class<? extends Block> targetType;
     private final Function<Block, Function<BlockBehaviour.Properties, Block>> defaultBlockFactory;
     private final int blockPropertiesCount;
     private final TagKey<Block> blacklistTagKey;
-    private final Map<Identifier, Function<Block, Function<BlockBehaviour.Properties, Block>>> factoryOverrides = Maps.newConcurrentMap();
+    private final Map<ResourceLocation, Function<Block, Function<BlockBehaviour.Properties, Block>>> factoryOverrides = Maps.newConcurrentMap();
 
     public DiagonalBlockTypeImpl(String name, Class<? extends Block> targetType, Function<Block, Function<BlockBehaviour.Properties, Block>> defaultBlockFactory, Property<?>... blockProperties) {
         this(name, targetType, defaultBlockFactory, blockProperties.length);
@@ -41,16 +40,16 @@ public class DiagonalBlockTypeImpl implements DiagonalBlockType {
 
     DiagonalBlockTypeImpl(String name, Class<? extends Block> targetType, Function<Block, Function<BlockBehaviour.Properties, Block>> defaultBlockFactory, int blockPropertiesCount) {
         name = name.toLowerCase(Locale.ROOT);
-        this.name = Identifier.fromNamespaceAndPath("diagonal" + name, name);
+        this.name = new ResourceLocation("diagonal" + name, name);
         this.targetType = targetType;
         this.defaultBlockFactory = defaultBlockFactory;
         this.blockPropertiesCount = blockPropertiesCount;
-        this.blacklistTagKey = TagKey.create(Registries.BLOCK, this.id("non_diagonal_" + name));
+        this.blacklistTagKey = TagKey.create(Registry.BLOCK_REGISTRY, this.id("non_diagonal_" + name));
     }
 
     @Override
-    public Identifier id(String path) {
-        return Identifier.fromNamespaceAndPath(this.name.getNamespace(), path);
+    public ResourceLocation id(String path) {
+        return new ResourceLocation(this.name.getNamespace(), path);
     }
 
     @Override
@@ -64,7 +63,7 @@ public class DiagonalBlockTypeImpl implements DiagonalBlockType {
     }
 
     @Override
-    public boolean isTarget(Identifier identifier, Block block) {
+    public boolean isTarget(ResourceLocation identifier, Block block) {
         if (!(block instanceof DiagonalBlock) && this.factoryOverrides.get(identifier) != NULL_FACTORY) {
             // check that block state properties count matches, we might otherwise run into issues with blocks that extend the base class and expect certain properties to be present
             // especially an issue when running BlockBehaviour.Properties::copy with behavior properties that depend on block state properties, such as BlockBehaviour.Properties::lightLevel
@@ -80,17 +79,16 @@ public class DiagonalBlockTypeImpl implements DiagonalBlockType {
     }
 
     @Override
-    public Block makeDiagonalBlock(Identifier identifier, Block block) {
+    public Block makeDiagonalBlock(ResourceLocation identifier, Block block) {
         if (this.isTarget(identifier, block)) {
-            Identifier id = this.id(identifier.getNamespace() + "/" + identifier.getPath());
+            ResourceLocation id = this.id(identifier.getNamespace() + "/" + identifier.getPath());
             Function<BlockBehaviour.Properties, Block> blockFactory = this.factoryOverrides.getOrDefault(identifier,
                     this.defaultBlockFactory).apply(block);
-            BlockBehaviour.Properties properties = BlockBehaviour.Properties.ofFullCopy(block)
-                    .overrideLootTable(block.getLootTable())
-                    .overrideDescription(block.getDescriptionId())
-                    .setId(ResourceKey.create(Registries.BLOCK, id));
+            // 1.19.2: there are no block ids in block properties yet, and the loot table and description are not part of the properties
+            BlockBehaviour.Properties properties = BlockBehaviour.Properties.copy(block).dropsLike(block);
             Block diagonalBlock = blockFactory.apply(properties);
             Objects.requireNonNull(diagonalBlock, () -> "diagonal block for '%s' is null".formatted(identifier));
+            diagonalBlock.descriptionId = block.getDescriptionId();
             this.blocks.put(block, diagonalBlock);
             if (this.supportsOriginalBlockState()) {
                 NON_DIAGONAL_TO_DIAGONAL_BLOCKS.put(block, diagonalBlock);
@@ -115,10 +113,12 @@ public class DiagonalBlockTypeImpl implements DiagonalBlockType {
 
     private <T extends Comparable<T>, V extends T> BlockState copyBlockStateProperties(BlockState blockState, Block block) {
         BlockState newBlockState = block.defaultBlockState();
-        for (Property.Value<?> value : blockState.getValues().toList()) {
-            Property<?> property = this.sanitizeProperty(value.property());
-            Comparable<?> propertyValue = this.sanitizePropertyValue(value.property(), value.value());
-            newBlockState = newBlockState.trySetValue((Property<T>) property, (V) propertyValue);
+        for (Map.Entry<Property<?>, Comparable<?>> value : blockState.getValues().entrySet()) {
+            Property<?> property = this.sanitizeProperty(value.getKey());
+            Comparable<?> propertyValue = this.sanitizePropertyValue(value.getKey(), value.getValue());
+            if (newBlockState.hasProperty(property)) {
+                newBlockState = newBlockState.setValue((Property<T>) property, (V) propertyValue);
+            }
         }
 
         return newBlockState;
@@ -138,20 +138,20 @@ public class DiagonalBlockTypeImpl implements DiagonalBlockType {
     }
 
     @Override
-    public void registerBlockFactory(Identifier identifier, Function<Block, Function<BlockBehaviour.Properties, Block>> factory) {
+    public void registerBlockFactory(ResourceLocation identifier, Function<Block, Function<BlockBehaviour.Properties, Block>> factory) {
         Objects.requireNonNull(identifier, "identifier is null");
         Objects.requireNonNull(factory, "factory is null");
         this.factoryOverrides.put(identifier, factory);
     }
 
     @Override
-    public void registerDefaultBlockFactory(Identifier identifier) {
+    public void registerDefaultBlockFactory(ResourceLocation identifier) {
         Objects.requireNonNull(identifier, "identifier is null");
         this.factoryOverrides.put(identifier, this.defaultBlockFactory);
     }
 
     @Override
-    public void disableBlockFactory(Identifier identifier) {
+    public void disableBlockFactory(ResourceLocation identifier) {
         Objects.requireNonNull(identifier, "identifier is null");
         this.factoryOverrides.put(identifier, NULL_FACTORY);
     }
